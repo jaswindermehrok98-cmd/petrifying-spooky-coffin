@@ -6,7 +6,7 @@ import { spawnSync } from 'node:child_process';
 const root = process.cwd();
 const bundleDir = resolve(root, '.bundle');
 const siteDir = resolve(root, 'site');
-const chunkNames = (await readdir(bundleDir)).filter((name) => /^part-\\d+\\.b64$/.test(name)).sort();
+const chunkNames = (await readdir(bundleDir)).filter((name) => /^part-\d+\.b64$/.test(name)).sort();
 if (!chunkNames.length) throw new Error('The project bundle chunks are missing.');
 
 const encoded = (await Promise.all(chunkNames.map((name) => readFile(join(bundleDir, name), 'utf8')))).join('');
@@ -35,14 +35,14 @@ for (let index = 0; index < entryCount; index += 1) {
   const name = archive.subarray(cursor + 46, cursor + 46 + nameLength).toString('utf8');
   cursor += 46 + nameLength + extraLength + commentLength;
 
-  if (flags & 1) throw new Error(`Encrypted ZIP entry is not supported: ${name}`);
-  const normal = name.replaceAll('\\\\', '/');
-  if (normal.startsWith('/') || normal.split('/').includes('..')) throw new Error(`Unsafe path in project ZIP: ${name}`);
+  if (flags & 1) throw new Error(\`Encrypted ZIP entry is not supported: \${name}\`);
+  const normal = name.replaceAll('\\', '/');
+  if (normal.startsWith('/') || normal.split('/').includes('..')) throw new Error(\`Unsafe path in project ZIP: \${name}\`);
   const destination = resolve(siteDir, normal);
-  if (destination !== siteDir && !destination.startsWith(siteDir + sep)) throw new Error(`Unsafe extraction path: ${name}`);
+  if (destination !== siteDir && !destination.startsWith(siteDir + sep)) throw new Error(\`Unsafe extraction path: \${name}\`);
   if (normal.endsWith('/')) { await mkdir(destination, { recursive: true }); continue; }
 
-  if (archive.readUInt32LE(localOffset) !== 0x04034b50) throw new Error(`Invalid local file header: ${name}`);
+  if (archive.readUInt32LE(localOffset) !== 0x04034b50) throw new Error(\`Invalid local file header: \${name}\`);
   const localNameLength = archive.readUInt16LE(localOffset + 26);
   const localExtraLength = archive.readUInt16LE(localOffset + 28);
   const dataStart = localOffset + 30 + localNameLength + localExtraLength;
@@ -50,18 +50,18 @@ for (let index = 0; index < entryCount; index += 1) {
   let data;
   if (method === 0) data = compressed;
   else if (method === 8) data = inflateRawSync(compressed);
-  else throw new Error(`Unsupported ZIP compression method ${method}: ${name}`);
-  if (data.length !== uncompressedSize) throw new Error(`Size check failed for ${name}`);
+  else throw new Error(\`Unsupported ZIP compression method \${method}: \${name}\`);
+  if (data.length !== uncompressedSize) throw new Error(\`Size check failed for \${name}\`);
   await mkdir(dirname(destination), { recursive: true });
   await writeFile(destination, data);
 }
 
 if (process.argv.includes('--extract-only')) {
-  console.log(`Samrath Web extracted (${entryCount} ZIP entries).`);
+  console.log(\`Samrath Web extracted (\${entryCount} ZIP entries).\`);
 } else {
   const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
   const install = spawnSync(npm, ['install', '--no-audit', '--no-fund'], { cwd: siteDir, stdio: 'inherit' });
   if (install.error) throw install.error;
   if (install.status !== 0) process.exit(install.status ?? 1);
-  console.log(`Samrath Web extracted and dependencies installed (${entryCount} ZIP entries).`);
+  console.log(\`Samrath Web extracted and dependencies installed (\${entryCount} ZIP entries).\`);
 }
