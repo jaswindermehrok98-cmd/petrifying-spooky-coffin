@@ -1,0 +1,9 @@
+{
+  "name": "samrath-web-vercel-bootstrap",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "npm --prefix site run build"
+  }
+}
